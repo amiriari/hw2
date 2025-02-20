@@ -8,6 +8,7 @@
 #include "product.h"
 #include "db_parser.h"
 #include "product_parser.h"
+#include "mydatastore.h"
 #include "util.h"
 
 using namespace std;
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
      * Declare your derived DataStore object here replacing
      *  DataStore type to your derived type
      ****************/
-    DataStore ds;
+    MyDataStore* ds = new MyDataStore();
 
 
 
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
     parser.addSectionParser("users", userSectionParser);
 
     // Now parse the database to populate the DataStore
-    if( parser.parse(argv[1], ds) ) {
+    if( parser.parse(argv[1], *ds) ) {
         cerr << "Error parsing!" << endl;
         return 1;
     }
@@ -77,7 +78,7 @@ int main(int argc, char* argv[])
                     term = convToLower(term);
                     terms.push_back(term);
                 }
-                hits = ds.search(terms, 0);
+                hits = ds->search(terms, 0);
                 displayProducts(hits);
             }
             else if ( cmd == "OR" ) {
@@ -87,29 +88,65 @@ int main(int argc, char* argv[])
                     term = convToLower(term);
                     terms.push_back(term);
                 }
-                hits = ds.search(terms, 1);
+                hits = ds->search(terms, 1);
                 displayProducts(hits);
             }
             else if ( cmd == "QUIT") {
                 string filename;
                 if(ss >> filename) {
                     ofstream ofile(filename.c_str());
-                    ds.dump(ofile);
+                    ds->dump(ofile);
                     ofile.close();
                 }
                 done = true;
             }
+
 	    /* Add support for other commands here */
 
-
-
-
-            else {
-                cout << "Unknown command" << endl;
+        else if( cmd == "ADD")
+        {
+            string username;
+            unsigned int target;
+            if (ss >> username >> target)
+            {
+                if ((target-1)< 0 || (target-1)>(hits.size()-1)){
+                cout << "Invalid request" << endl;
+                }
+                else
+                {
+                username = convToLower(username);
+                ds->addToCart(username,hits[(target)-1]);
+                }
             }
         }
 
+        else if( cmd == "VIEWCART")
+        {
+            string username;
+            if(ss >> username){
+                username = convToLower(username);
+                ds->viewCart(username);
+            }
+        }
+
+        else if( cmd == "BUYCART"){
+            string username;
+            if(ss >> username) {
+                username = convToLower(username);
+                ds->buyCart(username);
+            }
+        }
+
+
+
+
+        else {
+            cout << "Unknown command" << endl;
+        }
     }
+
+    }
+    delete ds;
     return 0;
 }
 
